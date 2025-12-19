@@ -3,7 +3,7 @@ import sgMail from "@sendgrid/mail";
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 export async function sendPlanEmail({ to, sessionId }) {
-    const planUrl = `${process.env.APP_BASE_URL}/plan/${sessionId}`;
+    const planUrl = `${process.env.FRONTEND_ORIGIN}/plan/${sessionId}`;
 
     const msg = {
         to,
