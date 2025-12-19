@@ -1,0 +1,23 @@
+---
+alwaysApply: true
+---
+
+# Cursor Documentation Index
+
+## Prompts
+- `docs/prompts/doc-creation.md` – Rules for generating and updating documentation
+
+## Rules
+- `rules/task-lists.mdc` – Task breakdown and execution rules
+
+---
+
+## Usage
+
+These documents guide Cursor when:
+- Generating new features
+- Updating existing code
+- Creating documentation
+- Producing task lists
+
+All contributors should keep changes aligned with these rules.

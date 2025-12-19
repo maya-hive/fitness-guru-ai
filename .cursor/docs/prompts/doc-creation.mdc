@@ -1,0 +1,42 @@
+---
+description: Documentation Creation Rules
+alwaysApply: false
+---
+# Documentation Creation Rules
+
+## Scope
+This prompt governs how Cursor generates or updates documentation for this repository.
+
+The repository is a Turborepo monorepo containing:
+- Frontend applications under `apps/web`
+- Backend services under `apps/api`
+- Shared packages under `packages/*`
+
+Documentation must always respect this structure.
+
+---
+
+## General Rules
+
+- Analyze existing code and documentation before generating new content.
+- If documentation already exists, update it instead of duplicating it.
+- Keep documentation concise, structured, and task-oriented.
+- Do not introduce unrelated concepts or speculative features.
+- Avoid repeating large code blocks when a file reference is sufficient.
+- Prefer referencing file paths over duplicating content.
+
+---
+
+## Documentation Style
+
+- Use clear headings and subheadings.
+- Use bullet points for rules and guidelines.
+- Use code blocks only when necessary for clarity.
+- Avoid narrative or marketing-style language.
+- Assume the reader is a developer familiar with React, TypeScript, and Node.js.
+
+---
+
+## Required Updates
+
+- Every new documentation file **must be registered in**:

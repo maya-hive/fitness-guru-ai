@@ -1,0 +1,84 @@
+---
+alwaysApply: true
+---
+
+# Task List Rules
+
+## Objective
+Ensure all Cursor-generated work is broken down into clear, actionable, and verifiable tasks.
+
+---
+
+## Task Structure
+
+All task lists must follow this structure:
+
+- Setup / Prerequisites
+- Core Implementation
+- Validation / Testing
+- Cleanup (if applicable)
+
+Each task must:
+- Be atomic
+- Have a clear completion condition
+- Reference the relevant file or directory
+
+---
+
+## Frontend Tasks (`apps/web`)
+
+When generating frontend tasks:
+- Assume React 18 + Vite
+- Use React Router for navigation
+- Use Tailwind CSS for styling
+- Prefer Radix UI for primitives
+- Use Framer Motion only when animation is explicitly required
+- Respect theme handling via `next-themes`
+
+Example:
+- Add route in `apps/web/src/routes`
+- Create page component in `apps/web/src/pages`
+- Register layout if required
+
+---
+
+## Backend Tasks (`apps/api`)
+
+When generating backend tasks:
+- Use Express.js with TypeScript
+- Validate all inputs using Zod
+- Keep route handlers thin
+- Move logic to service layers
+- Use MySQL2 for database access
+- Ensure CORS configuration is explicit
+
+Example:
+- Add route in `apps/api/src/routes`
+- Add schema in `apps/api/src/schemas`
+- Add service in `apps/api/src/services`
+
+---
+
+## Monorepo & Turborepo Tasks
+
+- Respect package boundaries
+- Do not introduce cross-app imports
+- Update `turbo.json` only when task pipelines change
+- Shared logic must go into `packages/*`
+
+---
+
+## AI-Generated Tasks
+
+When tasks involve AI (OpenAI):
+- Clearly separate prompt logic from transport logic
+- Never hardcode API keys
+- Validate AI responses before usage
+
+---
+
+## Output Rules
+
+- Tasks must be ordered logically
+- Avoid vague tasks like "optimize" or "improve"
+- No task should span multiple concerns
