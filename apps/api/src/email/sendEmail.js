@@ -3,20 +3,20 @@ import sgMail from "@sendgrid/mail";
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 export async function sendPlanEmail({ to, sessionId }) {
-    const planUrl = `${process.env.FRONTEND_ORIGIN}/plan/${sessionId}`;
+  const planUrl = `${process.env.APP_BASE_URL}/plan/${sessionId}`;
 
-    const msg = {
-        to,
-        from: process.env.EMAIL_FROM,
-        subject: "Your Personalized Fitness Plan – Quantum Fitness",
-        html: emailTemplate({ planUrl })
-    };
+  const msg = {
+    to,
+    from: process.env.EMAIL_FROM,
+    subject: "Your Personalized Fitness Plan – Quantum Fitness",
+    html: emailTemplate({ planUrl })
+  };
 
-    await sgMail.send(msg);
+  await sgMail.send(msg);
 }
 
 function emailTemplate({ planUrl }) {
-    return `
+  return `
   <!DOCTYPE html>
   <html>
   <head>

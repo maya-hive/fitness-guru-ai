@@ -4,7 +4,7 @@ import { GOALS, EQUIPMENT } from "./plan/exerciseLibrary.js";
 import { buildWeeklyPlan } from "./plan/planner.js";
 import { getOpenAI } from "./openaiClient.js";
 import { systemDeveloperPrompt, planRenderUserPrompt, learningContextPrompt } from "./plan/renderPrompt.js";
-import { db } from "./db.js";
+import { saveSessionBlob } from "./blob/sessionStore.js";
 import { getSimilarSessions } from "./learning/sessionRetriever.js";
 
 const AgeSchema = z.number().int().min(10).max(90);
@@ -207,29 +207,10 @@ export async function generatePlanWithLLM(session) {
     return { planText: parsed.planText, computedPlan };
 }
 
-export async function saveSessionToDB(session, planText) {
-    const { data, history, id } = session;
-
-    await db.execute(
-        `
-      INSERT INTO fitness_sessions
-      (session_id, goal, age, weight, height, weekly_hours, equipment, chat_history, plan_text)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE
-        plan_text = VALUES(plan_text),
-        chat_history = VALUES(chat_history)
-      `,
-        [
-            id,
-            data.goal,
-            data.age,
-            data.weight,
-            data.height,
-            data.weeklyHours,
-            JSON.stringify(data.equipment),
-            JSON.stringify(history),
-            planText
-        ]
-    );
-}
+await saveSessionBlob(session.id, {
+    sessionId: session.id,
+    profile: session.data,
+    planText,
+    createdAt: new Date().toISOString()
+});
 

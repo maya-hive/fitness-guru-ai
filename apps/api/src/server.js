@@ -186,4 +186,11 @@ app.post("/api/share/email", async (req, res) => {
 
 
 const port = Number(process.env.PORT || 3001);
-app.listen(port, () => console.log(`Backend running on http://localhost:${port}`));
+
+if (process.env.NODE_ENV !== "production") {
+    app.listen(port, () =>
+        console.log(`API running on http://localhost:${port}`)
+    );
+}
+
+export default app;
