@@ -1,4 +1,5 @@
 import { ArrowUpRight } from 'lucide-react';
+import Markdown from 'react-markdown';
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -30,8 +31,8 @@ export default function PlanCard({ planText, planLink, onShareEmail }) {
 
             <CardContent className="pt-4">
                 <ScrollArea className="h-[320px] pr-4">
-                    <div className="text-sm whitespace-pre-wrap leading-relaxed text-balance">
-                        {planText}
+                    <div className="text-sm whitespace-pre-wrap leading-relaxed text-balance markdown-content">
+                        <Markdown>{planText}</Markdown>
                     </div>
                 </ScrollArea>
             </CardContent>

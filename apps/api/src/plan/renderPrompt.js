@@ -31,16 +31,28 @@ export function planRenderUserPrompt({ profile, computedPlan }) {
   ${JSON.stringify(computedPlan, null, 2)}
   
   Output must be in the style:
-  🎯 YOUR PROFILE
+  ## 🎯 YOUR PROFILE
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   ...
-  📋 X-DAY WEEKLY SCHEDULE
+  ## 📋 X-DAY WEEKLY SCHEDULE
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Day 1: ...
+  ### Day 1: ...
   ...
-  💡 TRAINING GUIDELINES
-  🍎 NUTRITION TIPS
-  😴 RECOVERY & REST
+  
+  IMPORTANT: For the WEEKLY SCHEDULE section, format each day as a flat list (not nested):
+  ### Day 1:
+  - **Duration:** X minutes
+  - **Warm-up:** [warm-up description]
+  - **Main Workout:**
+    - [exercise 1]
+    - [exercise 2]
+  - **Finisher:** [finisher description]
+  
+  Note: Duration, Warm-up, Main Workout, and Finisher must all be at the same indentation level (single dash). Only the exercises within Main Workout should be nested (double dash).
+  
+  ## 💡 TRAINING GUIDELINES
+  ## 🍎 NUTRITION TIPS
+  ## 😴 RECOVERY & REST
   
   Add a short safety note: “If you have injuries or medical conditions, consult a professional.”
   `.trim();

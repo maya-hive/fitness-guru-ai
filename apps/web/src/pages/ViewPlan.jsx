@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import Markdown from 'react-markdown';
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -35,8 +36,8 @@ export default function ViewPlan() {
 
                 <CardContent>
                     <ScrollArea className="h-[70vh] pr-4">
-                        <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                            {data.planText}
+                        <div className="whitespace-pre-wrap text-sm leading-relaxed markdown-content">
+                            <Markdown>{data.planText}</Markdown>
                         </div>
                     </ScrollArea>
 

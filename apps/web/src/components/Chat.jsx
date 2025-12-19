@@ -286,7 +286,7 @@ export default function Chat() {
                                             className={`max-w-[75%] rounded-xl px-4 py-2 text-sm ${m.role === "user"
                                                 ? "bg-primary text-primary-foreground"
                                                 : m.role === "error"
-                                                    ? "bg-red-200 text-destructive-foreground"
+                                                    ? "bg-red-400 text-destructive-foreground"
                                                     : "bg-muted"
                                                 }`}
                                         >

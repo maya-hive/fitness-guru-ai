@@ -134,3 +134,31 @@
         cursor: pointer;
     }
 }
+
+@layer components {
+    .markdown-content {
+        ul {
+            line-height: 1;
+
+            li {
+                ul {
+                    margin-left: 10px;
+                }
+            }
+        }
+
+        p {
+            line-height: 1;
+        }
+
+        h2 {
+            font-size: var(--text-xl);
+            font-weight: 600;
+        }
+
+        h3 {
+            font-size: var(--text-base);
+            font-weight: 500;
+        }
+    }
+}
