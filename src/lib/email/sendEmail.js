@@ -3,20 +3,75 @@ import sgMail from "@sendgrid/mail";
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 export async function sendPlanEmail({ to, sessionId }) {
-    const planUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.FRONTEND_ORIGIN || 'http://localhost:3000'}/plan/${sessionId}`;
+  const planUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.FRONTEND_ORIGIN || 'http://localhost:3000'}/plan/${sessionId}`;
 
-    const msg = {
-        to,
-        from: process.env.EMAIL_FROM || process.env.FROM_EMAIL,
-        subject: "Your Personalized Fitness Plan – Quantum Fitness",
-        html: emailTemplate({ planUrl })
+  // Get and validate from email
+  let fromEmail = (process.env.EMAIL_FROM || process.env.FROM_EMAIL || '').trim();
+
+  if (!fromEmail) {
+    throw new Error('EMAIL_FROM or FROM_EMAIL environment variable is not set');
+  }
+
+  // Log the from email for debugging (mask sensitive parts)
+  const maskedFrom = fromEmail.includes('@')
+    ? fromEmail.replace(/(.{2})(.*)(@.*)/, '$1***$3')
+    : fromEmail;
+  console.log(`Sending email from: ${maskedFrom}`);
+
+  const msg = {
+    to,
+    from: fromEmail,
+    subject: "Your Personalized Fitness Plan – Quantum Fitness",
+    html: emailTemplate({ planUrl })
+  };
+
+  try {
+    await sgMail.send(msg);
+  } catch (error) {
+    // Enhanced error logging for SendGrid errors
+    const maskedFrom = msg.from
+      ? (msg.from.includes('@') ? msg.from.replace(/(.{2})(.*)(@.*)/, '$1***$3') : msg.from)
+      : 'NOT SET';
+
+    const errorDetails = {
+      to,
+      sessionId,
+      from: maskedFrom,
+      fromLength: msg.from?.length || 0,
+      fromHasAt: msg.from?.includes('@') || false,
+      error: error.message,
+      statusCode: error.code || error.response?.statusCode,
+      responseBody: error.response?.body,
+      responseHeaders: error.response?.headers
     };
 
-    await sgMail.send(msg);
+    console.error('Failed to send email:', errorDetails);
+
+    // Log specific SendGrid error details if available
+    if (error.response?.body) {
+      console.error('SendGrid error details:', JSON.stringify(error.response.body, null, 2));
+    }
+
+    // Additional diagnostics for "Invalid from email address" error
+    if (error.response?.body?.errors?.some(e => e.field === 'from')) {
+      console.error('DIAGNOSTICS for Invalid from email:');
+      console.error(`  - From email value: "${msg.from}"`);
+      console.error(`  - Email length: ${msg.from?.length || 0}`);
+      console.error(`  - Contains @: ${msg.from?.includes('@') || false}`);
+      console.error(`  - Trimmed value: "${msg.from?.trim()}"`);
+      console.error('  - Common causes:');
+      console.error('    1. Email not verified in SendGrid dashboard');
+      console.error('    2. Email contains extra whitespace or invalid characters');
+      console.error('    3. Email format is incorrect (should be: email@domain.com or "Name <email@domain.com>")');
+      console.error('    4. Email domain not authenticated in SendGrid');
+    }
+
+    throw error;
+  }
 }
 
 function emailTemplate({ planUrl }) {
-    return `
+  return `
   <!DOCTYPE html>
   <html>
   <head>

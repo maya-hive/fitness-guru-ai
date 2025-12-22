@@ -14,11 +14,26 @@ export async function getSimilarSessions({ goal, weeklyHours, equipment }) {
         [goal, weeklyHours]
     );
 
-    return rows.map(r => ({
-        goal: r.goal,
-        weeklyHours: r.weekly_hours,
-        equipment: JSON.parse(JSON.stringify(r.equipment)),
-        planText: r.plan_text
-    }));
+    return rows.map(r => {
+        // Parse equipment from JSON string stored in database
+        let equipment = [];
+        try {
+            equipment = JSON.parse(r.equipment || '[]');
+        } catch (e) {
+            // If parsing fails, treat as empty array or single string
+            equipment = r.equipment ? [r.equipment] : [];
+        }
+        // Ensure it's always an array
+        if (!Array.isArray(equipment)) {
+            equipment = equipment ? [equipment] : [];
+        }
+
+        return {
+            goal: r.goal,
+            weeklyHours: r.weekly_hours,
+            equipment,
+            planText: r.plan_text
+        };
+    });
 }
 

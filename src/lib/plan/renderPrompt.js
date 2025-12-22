@@ -25,7 +25,7 @@ export function planRenderUserPrompt({ profile, computedPlan }) {
   - Weight: ${profile.weight} kg
   - Height: ${profile.height} cm
   - Weekly time: ${profile.weeklyHours} hours
-  - Equipment: ${profile.equipment.join(", ")}
+  - Equipment: ${Array.isArray(profile.equipment) ? profile.equipment.join(", ") : (profile.equipment || "Not specified")}
   
   COMPUTED SCHEDULE JSON (do not contradict it):
   ${JSON.stringify(computedPlan, null, 2)}
@@ -66,15 +66,22 @@ export function learningContextPrompt(similarSessions) {
 
   ${similarSessions
       .map(
-        (s, i) => `
+        (s, i) => {
+          // Safely handle equipment - ensure it's an array
+          const equipment = Array.isArray(s.equipment)
+            ? s.equipment.join(", ")
+            : (s.equipment || "Not specified");
+
+          return `
   Example ${i + 1}:
   Goal: ${s.goal}
   Weekly Hours: ${s.weeklyHours}
-  Equipment: ${s.equipment.join(", ")}
+  Equipment: ${equipment}
 
   Plan Summary:
   ${s.planText.substring(0, 600)}
-  `
+  `;
+        }
       )
       .join("\n")}
 
