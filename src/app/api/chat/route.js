@@ -15,7 +15,7 @@ export async function POST(request) {
     try {
         const body = await request.json();
         const parsed = ChatSchema.safeParse(body);
-        
+
         if (!parsed.success) {
             return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
         }
@@ -47,7 +47,9 @@ export async function POST(request) {
                     const { planText } = await generatePlanWithLLM(session);
 
                     // Save to DB
-                    await saveSessionToDB(session, planText);
+                    //await saveSessionToDB(session, planText);
+                    console.log("removed saveSessionToDB");
+                    console.log("planText", planText);
 
                     session.stage = "DONE";
                     saveSession(session);
