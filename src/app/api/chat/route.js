@@ -46,9 +46,15 @@ export async function POST(request) {
                 try {
                     const { planText } = await generatePlanWithLLM(session);
 
-                    // Save to DB
-                    //await saveSessionToDB(session, planText);
-                    console.log("removed saveSessionToDB - new");
+                    // Save to DB - don't fail the request if this fails
+                    try {
+                        await saveSessionToDB(session, planText);
+                        console.log("Session saved to database successfully");
+                    } catch (dbError) {
+                        // Log the error but don't fail the request
+                        // The user should still get their plan even if DB save fails
+                        console.error("Failed to save session to database, but continuing:", dbError);
+                    }
 
                     session.stage = "DONE";
                     saveSession(session);
@@ -63,7 +69,7 @@ export async function POST(request) {
                         actions: [{ type: "share_email", label: "Share via Email" }]
                     });
                 } catch (e) {
-                    console.error(e);
+                    console.error("Plan generation failed:", e);
                     saveSession(session);
                     return NextResponse.json({
                         sessionId: session.id,
