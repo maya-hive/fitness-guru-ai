@@ -50,22 +50,33 @@ async function initializeDB() {
                 console.log('✓ Database connection pool created via SSH tunnel');
             } catch (error) {
                 console.error('Failed to establish SSH tunnel:', error);
-                throw error;
+                console.warn('⚠️  Continuing without database connection. App will work but data won\'t be persisted.');
+                // Don't throw - allow app to continue without DB
+                dbInitialized = true;
+                return null;
             }
         } else {
-            // Direct connection
-            const dbConfig = {
-                host: process.env.DB_HOST || 'localhost',
-                port: parseInt(process.env.DB_PORT || '3306'),
-                user: process.env.DB_USER,
-                password: process.env.DB_PASSWORD,
-                database: process.env.DB_NAME,
-                waitForConnections: true,
-                connectionLimit: 10,
-            };
+            try {
+                // Direct connection
+                const dbConfig = {
+                    host: process.env.DB_HOST || 'localhost',
+                    port: parseInt(process.env.DB_PORT || '3306'),
+                    user: process.env.DB_USER,
+                    password: process.env.DB_PASSWORD,
+                    database: process.env.DB_NAME,
+                    waitForConnections: true,
+                    connectionLimit: 10,
+                };
 
-            db = mysql.createPool(dbConfig);
-            console.log('✓ Database connection pool created (direct connection)');
+                db = mysql.createPool(dbConfig);
+                console.log('✓ Database connection pool created (direct connection)');
+            } catch (error) {
+                console.error('Failed to create database connection:', error);
+                console.warn('⚠️  Continuing without database connection. App will work but data won\'t be persisted.');
+                // Don't throw - allow app to continue without DB
+                dbInitialized = true;
+                return null;
+            }
         }
 
         dbInitialized = true;
@@ -83,12 +94,13 @@ initializeDB().catch(err => {
 
 /**
  * Get database connection pool, ensuring it's initialized
+ * Returns null if database is unavailable (SSH failed, connection failed, etc.)
  */
 export async function getDB() {
     if (!dbInitialized) {
         await initializeDB();
     }
-    return db;
+    return db || null;
 }
 
 // Export db directly for backward compatibility
@@ -101,6 +113,10 @@ export { db };
 export async function initializeTables() {
     try {
         const db = await getDB();
+        if (!db) {
+            console.warn('⚠️  Database not available, skipping table initialization');
+            return;
+        }
         // Check if fitness_sessions table exists
         const [tables] = await db.execute(
             `SELECT TABLE_NAME 

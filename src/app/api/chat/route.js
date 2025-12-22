@@ -47,13 +47,11 @@ export async function POST(request) {
                     const { planText } = await generatePlanWithLLM(session);
 
                     // Save to DB - don't fail the request if this fails
-                    try {
-                        await saveSessionToDB(session, planText);
+                    const savedToDB = await saveSessionToDB(session, planText);
+                    if (savedToDB) {
                         console.log("Session saved to database successfully");
-                    } catch (dbError) {
-                        // Log the error but don't fail the request
-                        // The user should still get their plan even if DB save fails
-                        console.error("Failed to save session to database, but continuing:", dbError);
+                    } else {
+                        console.warn("Session not saved to database (DB unavailable or save failed)");
                     }
 
                     session.stage = "DONE";
@@ -65,7 +63,7 @@ export async function POST(request) {
                             text: "Here's your personalized fitness plan:",
                             ui: null
                         },
-                        plan: { planText },
+                        plan: { planText, savedToDB },
                         actions: [{ type: "share_email", label: "Share via Email" }]
                     });
                 } catch (e) {

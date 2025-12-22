@@ -1,5 +1,7 @@
 import 'server-only';
 import { createTunnel } from 'tunnel-ssh';
+import fs from 'fs';
+import path from 'path';
 
 /**
  * Creates an SSH tunnel to a remote MySQL server using tunnel-ssh
@@ -46,19 +48,19 @@ export async function createSSHTunnel() {
             console.log(`Looking for SSH private key at: ${keyPath}`);
 
             if (fs.existsSync(keyPath)) {
-                sshConfig.privateKey = fs.readFileSync(keyPath);
-                sshConfig.passphrase = process.env.DB_SSH_PASSPHRASE || undefined;
+                sshOptions.privateKey = fs.readFileSync(keyPath);
+                sshOptions.passphrase = process.env.DB_SSH_PASSPHRASE || undefined;
                 hasAuth = true;
                 console.log(`✓ Using SSH private key from file: ${keyPath}`);
             } else {
                 const errorMsg = `SSH private key file not found: ${keyPath}`;
                 console.error(errorMsg);
-                return reject(new Error(errorMsg));
+                throw new Error(errorMsg);
             }
         } catch (error) {
             const errorMsg = `Error reading SSH private key file: ${error.message}`;
             console.error(errorMsg);
-            return reject(new Error(errorMsg));
+            throw new Error(errorMsg);
         }
     }
 

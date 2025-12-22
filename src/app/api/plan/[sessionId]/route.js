@@ -6,6 +6,13 @@ export async function GET(request, { params }) {
         const { sessionId } = params;
         const db = await getDB();
 
+        if (!db) {
+            return NextResponse.json(
+                { error: "Database not available. Plan cannot be retrieved." },
+                { status: 503 }
+            );
+        }
+
         const [rows] = await db.execute(
             "SELECT * FROM fitness_sessions WHERE session_id = ?",
             [sessionId]

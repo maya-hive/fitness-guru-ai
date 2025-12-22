@@ -213,6 +213,12 @@ export async function saveSessionToDB(session, planText) {
     try {
         const db = await getDB();
 
+        // If DB is not available (SSH failed, connection failed, etc.), just log and return false
+        if (!db) {
+            console.warn('⚠️  Database not available, skipping session save. Session ID:', id);
+            return false;
+        }
+
         const params = [
             id,
             data.goal,
@@ -236,6 +242,7 @@ export async function saveSessionToDB(session, planText) {
           `,
             params
         );
+        return true;
     } catch (error) {
         console.error('Failed to save session to database:', {
             sessionId: id,
@@ -255,7 +262,9 @@ export async function saveSessionToDB(session, planText) {
                 planTextLength: planText?.length || 0
             }
         });
-        throw error;
+        // Don't throw - allow app to continue even if DB save fails
+        console.warn('⚠️  Continuing without saving to database');
+        return false;
     }
 }
 

@@ -115,7 +115,11 @@ export default function Chat() {
                     newMessages.push({ role: "assistant", text: data.assistant.text });
                 }
                 // Add plan as a message in the flow
-                newMessages.push({ role: "plan", planText: data.plan.planText });
+                newMessages.push({
+                    role: "plan",
+                    planText: data.plan.planText,
+                    savedToDB: data.plan.savedToDB ?? false
+                });
                 setMessages(prev => [...prev, ...newMessages]);
                 setLoading(false);
                 return;
@@ -214,7 +218,11 @@ export default function Chat() {
                     newMessages.push({ role: "assistant", text: data.assistant.text });
                 }
                 // Add plan as a message in the flow
-                newMessages.push({ role: "plan", planText: data.plan.planText });
+                newMessages.push({
+                    role: "plan",
+                    planText: data.plan.planText,
+                    savedToDB: data.plan.savedToDB ?? false
+                });
                 setMessages(prev => [...prev, ...newMessages]);
                 setLoading(false);
                 return;
@@ -295,6 +303,7 @@ export default function Chat() {
                                                     planText={m.planText}
                                                     planLink={planLink}
                                                     onShareEmail={handleOptionSelect}
+                                                    savedToDB={m.savedToDB ?? false}
                                                 />
                                             </div>
                                         </motion.div>
