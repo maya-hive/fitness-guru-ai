@@ -209,18 +209,11 @@ export async function generatePlanWithLLM(session) {
 
 export async function saveSessionToDB(session, planText) {
     const { data, history, id } = session;
-    const db = await getDB();
 
-    await db.execute(
-        `
-      INSERT INTO fitness_sessions
-      (session_id, goal, age, weight, height, weekly_hours, equipment, chat_history, plan_text)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE
-        plan_text = VALUES(plan_text),
-        chat_history = VALUES(chat_history)
-      `,
-        [
+    try {
+        const db = await getDB();
+
+        const params = [
             id,
             data.goal,
             data.age,
@@ -230,7 +223,39 @@ export async function saveSessionToDB(session, planText) {
             JSON.stringify(data.equipment),
             JSON.stringify(history),
             planText
-        ]
-    );
+        ];
+
+        await db.execute(
+            `
+          INSERT INTO fitness_sessions
+          (session_id, goal, age, weight, height, weekly_hours, equipment, chat_history, plan_text)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE
+            plan_text = VALUES(plan_text),
+            chat_history = VALUES(chat_history)
+          `,
+            params
+        );
+    } catch (error) {
+        console.error('Failed to save session to database:', {
+            sessionId: id,
+            error: error.message,
+            errorCode: error.code,
+            sqlState: error.sqlState,
+            sqlMessage: error.sqlMessage,
+            stack: error.stack,
+            data: {
+                goal: data.goal,
+                age: data.age,
+                weight: data.weight,
+                height: data.height,
+                weeklyHours: data.weeklyHours,
+                equipmentCount: Array.isArray(data.equipment) ? data.equipment.length : 0,
+                historyLength: Array.isArray(history) ? history.length : 0,
+                planTextLength: planText?.length || 0
+            }
+        });
+        throw error;
+    }
 }
 

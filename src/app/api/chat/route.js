@@ -47,8 +47,8 @@ export async function POST(request) {
                     const { planText } = await generatePlanWithLLM(session);
 
                     // Save to DB
-                    //await saveSessionToDB(session, planText);
-                    console.log("removed saveSessionToDB");
+                    await saveSessionToDB(session, planText);
+                    console.log("added saveSessionToDB");
                     console.log("planText", planText);
 
                     session.stage = "DONE";
