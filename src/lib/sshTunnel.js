@@ -72,8 +72,6 @@ export async function createSSHTunnel() {
                 // Handle both raw key and base64 encoded key
                 let keyContent = process.env.DB_SSH_PRIVATE_KEY;
 
-                console.log(keyContent);
-
                 // Replace escaped newlines if present
                 keyContent = keyContent.replace(/\\n/g, '\n');
 
