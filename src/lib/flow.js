@@ -207,49 +207,68 @@ export async function generatePlanWithLLM(session) {
     return { planText: parsed.planText, computedPlan };
 }
 
+// UUID validation regex
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isValidUUID(str) {
+    return UUID_REGEX.test(str);
+}
+
 export async function saveSessionToDB(session, planText) {
     const { data, history, id } = session;
 
     try {
         const db = await getDB();
 
-        // If DB is not available (SSH failed, connection failed, etc.), just log and return false
+        // If DB is not available, just log and return false
         if (!db) {
             console.warn('⚠️  Database not available, skipping session save. Session ID:', id);
             return false;
         }
 
-        const params = [
-            id,
-            data.goal,
-            data.age,
-            data.weight,
-            data.height,
-            data.weeklyHours,
-            JSON.stringify(data.equipment),
-            JSON.stringify(history),
-            planText
-        ];
+        // Validate and convert session ID to UUID if needed
+        let sessionId = id;
+        if (!isValidUUID(sessionId)) {
+            // If session ID is not a valid UUID (e.g., old nanoid), generate a new UUID
+            const { randomUUID } = await import('crypto');
+            sessionId = randomUUID();
+            // Update the session with the new UUID
+            session.id = sessionId;
+            console.warn(`⚠️  Session ID "${id}" is not a valid UUID. Generated new UUID: ${sessionId}`);
+        }
 
-        await db.execute(
-            `
-          INSERT INTO fitness_sessions
-          (session_id, goal, age, weight, height, weekly_hours, equipment, chat_history, plan_text)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-          ON DUPLICATE KEY UPDATE
-            plan_text = VALUES(plan_text),
-            chat_history = VALUES(chat_history)
-          `,
-            params
-        );
+        const sessionData = {
+            session_id: sessionId,
+            goal: data.goal,
+            age: data.age,
+            weight: data.weight,
+            height: data.height,
+            weekly_hours: data.weeklyHours,
+            equipment: JSON.stringify(data.equipment),
+            chat_history: history, // JSONB column - pass as object, Supabase will handle conversion
+            plan_text: planText
+        };
+
+        // Use upsert to handle both insert and update
+        const { error } = await db
+            .from('fitness_sessions')
+            .upsert(sessionData, {
+                onConflict: 'session_id',
+                ignoreDuplicates: false
+            });
+
+        if (error) {
+            throw error;
+        }
+
         return true;
     } catch (error) {
         console.error('Failed to save session to database:', {
             sessionId: id,
             error: error.message,
             errorCode: error.code,
-            sqlState: error.sqlState,
-            sqlMessage: error.sqlMessage,
+            errorDetails: error.details,
+            errorHint: error.hint,
             stack: error.stack,
             data: {
                 goal: data.goal,

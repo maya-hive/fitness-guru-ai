@@ -14,16 +14,32 @@ export async function getSimilarSessions({ goal, weeklyHours, equipment }) {
             return [];
         }
 
-        const [rows] = await db.execute(
-            `SELECT goal, weekly_hours, equipment, plan_text
-        FROM fitness_sessions
-        WHERE goal = ?
-        ORDER BY ABS(weekly_hours - ?)
-        LIMIT 3`,
-            [goal, weeklyHours]
-        );
+        // Fetch sessions with matching goal
+        const { data: rows, error } = await db
+            .from('fitness_sessions')
+            .select('goal, weekly_hours, equipment, plan_text')
+            .eq('goal', goal)
+            .order('weekly_hours', { ascending: true })
+            .limit(10); // Fetch more to sort by difference
 
-        return rows.map(r => {
+        if (error) {
+            throw error;
+        }
+
+        if (!rows || rows.length === 0) {
+            return [];
+        }
+
+        // Sort by absolute difference in weekly_hours and take top 3
+        const sorted = rows
+            .map(r => ({
+                ...r,
+                diff: Math.abs((r.weekly_hours || 0) - weeklyHours)
+            }))
+            .sort((a, b) => a.diff - b.diff)
+            .slice(0, 3);
+
+        return sorted.map(r => {
             // Parse equipment from JSON string stored in database
             let equipment = [];
             try {

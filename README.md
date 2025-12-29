@@ -17,7 +17,7 @@ This is a [Turborepo](https://turborepo.org) monorepo containing the following a
   - OpenAI integration for generating personalized fitness plans
   - Session management
   - Email delivery via SendGrid
-  - MySQL database integration
+  - Supabase database integration
 
 ## 🚀 Getting Started
 
@@ -25,7 +25,7 @@ This is a [Turborepo](https://turborepo.org) monorepo containing the following a
 
 - Node.js >= 18
 - npm >= 11.6.2
-- MySQL database
+- Supabase account and project
 - OpenAI API key
 - SendGrid API key (optional, for email functionality)
 
@@ -46,42 +46,13 @@ npm install
 
 Create a `.env.local` file in the root directory with the following variables:
 ```env
-# Database Configuration
-# Option 1: Direct Connection (no SSH)
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=your_db_user
-DB_PASSWORD=your_db_password
-DB_NAME=your_db_name
-
-# Option 2: Remote MySQL via SSH Tunnel
-# Set DB_USE_SSH=true to enable SSH tunneling
-DB_USE_SSH=true
-DB_SSH_HOST=your-ssh-server.com
-DB_SSH_PORT=22
-DB_SSH_USER=ssh_username
-
-# Authentication Method 1: Password
-DB_SSH_PASSWORD=ssh_password
-
-# Authentication Method 2: Private Key from File Path (recommended)
-# Windows: DB_SSH_PRIVATE_KEY_PATH=C:\Users\Admin\.ssh\id_rsa
-# Linux/Mac: DB_SSH_PRIVATE_KEY_PATH=/home/user/.ssh/id_rsa
-# Or use ~ for home directory: DB_SSH_PRIVATE_KEY_PATH=~/.ssh/id_rsa
-# DB_SSH_PASSPHRASE=optional_passphrase_if_key_is_encrypted
-
-# Authentication Method 3: Private Key from Environment Variable
-# DB_SSH_PRIVATE_KEY=-----BEGIN OPENSSH PRIVATE KEY-----\n...\n-----END OPENSSH PRIVATE KEY-----
-# OR base64 encoded:
-# DB_SSH_PRIVATE_KEY=<base64_encoded_key>
-# DB_SSH_PASSPHRASE=optional_passphrase
-
-# Remote MySQL host (accessible from SSH server)
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=your_db_user
-DB_PASSWORD=your_db_password
-DB_NAME=your_db_name
+# Supabase Configuration
+# Get these from your Supabase project settings
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+# Use service role key for server-side operations (bypasses RLS)
+# Get this from Supabase project settings > API > service_role key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
 # OpenAI
 OPENAI_API_KEY=your_openai_api_key
@@ -98,6 +69,48 @@ FRONTEND_ORIGIN=http://localhost:3000
 # OpenAI Model (optional, defaults to gpt-4o-mini)
 OPENAI_MODEL=gpt-4o-mini
 ```
+
+4. Set up Supabase database:
+
+   - Create a new Supabase project at [supabase.com](https://supabase.com)
+   - Go to the SQL Editor in your Supabase dashboard
+   - Run the following SQL to create the required table:
+
+```sql
+-- Table schema with UUID primary key and JSONB for chat_history
+CREATE TABLE IF NOT EXISTS fitness_sessions (
+    session_id UUID NOT NULL DEFAULT gen_random_uuid(),
+    goal VARCHAR(100),
+    age INTEGER,
+    weight NUMERIC(5,2),
+    height NUMERIC(5,2),
+    weekly_hours NUMERIC(4,2),
+    equipment TEXT,
+    chat_history JSONB,
+    plan_text TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT fitness_sessions_pkey PRIMARY KEY (session_id)
+);
+
+-- Create updated_at trigger function
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Drop trigger if exists before creating
+DROP TRIGGER IF EXISTS update_fitness_sessions_updated_at ON fitness_sessions;
+
+CREATE TRIGGER update_fitness_sessions_updated_at BEFORE UPDATE
+ON fitness_sessions FOR EACH ROW
+EXECUTE FUNCTION update_updated_at_column();
+```
+
+**Note:** The `session_id` uses UUID type. The application generates UUIDs using Node.js `crypto.randomUUID()`. The `chat_history` column uses JSONB type for better JSON handling in PostgreSQL.
 
 ### Development
 
@@ -140,7 +153,7 @@ npm run build --filter=web
 - **Framer Motion** - Animation library
 - **next-themes** - Theme management (dark mode)
 - **OpenAI** - AI plan generation
-- **MySQL2** - Database driver
+- **@supabase/supabase-js** - Supabase client library
 - **SendGrid** - Email delivery
 - **Zod** - Schema validation
 
@@ -154,7 +167,7 @@ npm run build --filter=web
 
 - **Interactive Chat Interface**: Conversational flow to collect user fitness goals, preferences, and constraints
 - **AI-Powered Plan Generation**: Personalized workout and nutrition plans generated using OpenAI
-- **Session Management**: In-memory session management with database persistence for plans
+- **Session Management**: In-memory session management with Supabase database persistence for plans
 - **Plan Viewing**: View and manage generated fitness plans via shareable links
 - **Email Delivery**: Send fitness plans via email using SendGrid (optional)
 - **Responsive Design**: Modern, mobile-friendly UI with dark mode support

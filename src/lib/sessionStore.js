@@ -1,11 +1,18 @@
-import { nanoid } from "nanoid";
+import { randomUUID } from "crypto";
 
 const sessions = new Map();
+
+// UUID validation regex
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isValidUUID(str) {
+    return str && UUID_REGEX.test(str);
+}
 
 /**
  * Session shape:
  * {
- *   id: string,
+ *   id: string (UUID),
  *   data: { goal, age, weight, height, weeklyHours, equipment: [] },
  *   stage: string,
  *   history: [{ role, content }]
@@ -13,9 +20,21 @@ const sessions = new Map();
  */
 
 export function getOrCreateSession(sessionId) {
+    // If sessionId is provided and exists in memory, return it
     if (sessionId && sessions.has(sessionId)) return sessions.get(sessionId);
 
-    const id = sessionId || nanoid();
+    // Validate sessionId - if provided but not a valid UUID, generate a new one
+    // This handles old nanoid sessionIds from localStorage
+    let id;
+    if (sessionId && isValidUUID(sessionId)) {
+        id = sessionId;
+    } else {
+        // Generate new UUID for invalid or missing sessionId
+        id = randomUUID();
+        if (sessionId) {
+            console.warn(`⚠️  Invalid session ID format "${sessionId}". Generated new UUID: ${id}`);
+        }
+    }
     const session = {
         id,
         data: {

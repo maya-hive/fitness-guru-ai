@@ -3,8 +3,9 @@ import { getDB } from "@/lib/db";
 
 export async function GET(request, { params }) {
     try {
-        const { sessionId } = params;
+        const { sessionId } = await params;
         const db = await getDB();
+
 
         if (!db) {
             return NextResponse.json(
@@ -13,12 +14,17 @@ export async function GET(request, { params }) {
             );
         }
 
-        const [rows] = await db.execute(
-            "SELECT * FROM fitness_sessions WHERE session_id = ?",
-            [sessionId]
-        );
+        const { data: rows, error } = await db
+            .from('fitness_sessions')
+            .select('*')
+            .eq('session_id', sessionId)
+            .limit(1);
 
-        if (rows.length === 0) {
+        if (error) {
+            throw error;
+        }
+
+        if (!rows || rows.length === 0) {
             return NextResponse.json({ error: "Plan not found" }, { status: 404 });
         }
 
@@ -27,11 +33,16 @@ export async function GET(request, { params }) {
         // Safely parse equipment - handle both JSON strings and plain strings
         let equipment;
         try {
-            equipment = JSON.parse(row.equipment);
+            equipment = typeof row.equipment === 'string'
+                ? JSON.parse(row.equipment)
+                : row.equipment;
         } catch {
             // If parsing fails, treat as plain string and wrap in array
             equipment = row.equipment ? [row.equipment] : [];
         }
+
+        // chat_history is JSONB, so it should already be an object/array
+        const chatHistory = row.chat_history || [];
 
         return NextResponse.json({
             sessionId: row.session_id,
@@ -44,6 +55,7 @@ export async function GET(request, { params }) {
                 equipment: equipment
             },
             planText: row.plan_text,
+            chatHistory: chatHistory,
             createdAt: row.created_at
         });
     } catch (err) {
