@@ -19,14 +19,16 @@ export async function sendPlanEmail({ to, sessionId }) {
   let fromEmail = (process.env.EMAIL_FROM || process.env.FROM_EMAIL || '').trim();
 
   if (!fromEmail) {
-    throw new Error('EMAIL_FROM or FROM_EMAIL environment variable is not set');
+    const errorMsg = 'EMAIL_FROM or FROM_EMAIL environment variable is not set';
+    console.error(`[sendPlanEmail] ${errorMsg}`);
+    return { success: false, error: errorMsg };
   }
 
   // Log the from email for debugging (mask sensitive parts)
   const maskedFrom = fromEmail.includes('@')
     ? fromEmail.replace(/(.{2})(.*)(@.*)/, '$1***$3')
     : fromEmail;
-  console.log(`Sending email from: ${maskedFrom}`);
+  console.log(`[sendPlanEmail] Sending email from: ${maskedFrom} to: ${to}`);
 
   const msg = {
     to,
@@ -35,17 +37,10 @@ export async function sendPlanEmail({ to, sessionId }) {
     html: emailTemplate({ planUrl })
   };
 
-  console.log('msg', msg);
-
   try {
-    await sgMail.send(msg)
-      .then(() => { }, error => {
-        console.error(error);
-
-        if (error.response) {
-          console.error(error.response.body)
-        }
-      });
+    await sgMail.send(msg);
+    console.log(`[sendPlanEmail] Email sent successfully to: ${to}`);
+    return { success: true };
   } catch (error) {
     // Enhanced error logging for SendGrid errors
     const maskedFrom = msg.from
@@ -68,15 +63,15 @@ export async function sendPlanEmail({ to, sessionId }) {
       responseHeaders: error.response?.headers
     };
 
-    console.error('Failed to send email:', errorDetails);
+    console.error('[sendPlanEmail] Failed to send email:', errorDetails);
 
     // Log specific SendGrid error details if available
     if (errorBody) {
-      console.error('SendGrid error details:', JSON.stringify(errorBody, null, 2));
+      console.error('[sendPlanEmail] SendGrid error details:', JSON.stringify(errorBody, null, 2));
     }
 
-    // Handle authorization errors specifically
-    if (statusCode === 403 ||
+    // Handle authorization errors specifically (401 Unauthorized or 403 Forbidden)
+    if (statusCode === 401 || statusCode === 403 ||
       errorMessage.toLowerCase().includes('not authorized') ||
       errorMessage.toLowerCase().includes('unauthorized') ||
       (errorBody?.errors?.some(e =>
@@ -85,7 +80,7 @@ export async function sendPlanEmail({ to, sessionId }) {
         e.message?.toLowerCase().includes('permission')
       ))) {
       console.error('========================================');
-      console.error('SENDGRID AUTHORIZATION ERROR DETECTED');
+      console.error('[sendPlanEmail] SENDGRID AUTHORIZATION ERROR DETECTED');
       console.error('========================================');
       console.error('This error typically means:');
       console.error('  1. The API key does not have "Mail Send" permission enabled');
@@ -104,20 +99,11 @@ export async function sendPlanEmail({ to, sessionId }) {
       console.error(`  - API key length: ${apiKey?.length || 0} characters`);
       console.error(`  - API key starts with: ${apiKey?.substring(0, 7) || 'N/A'}...`);
       console.error('========================================');
-
-      // Create a more helpful error message
-      const authError = new Error(
-        'SendGrid API key is not authorized to send emails. ' +
-        'Please verify that your API key has "Mail Send" permission enabled in the SendGrid dashboard.'
-      );
-      authError.statusCode = statusCode;
-      authError.originalError = error;
-      throw authError;
     }
 
     // Additional diagnostics for "Invalid from email address" error
     if (errorBody?.errors?.some(e => e.field === 'from')) {
-      console.error('DIAGNOSTICS for Invalid from email:');
+      console.error('[sendPlanEmail] DIAGNOSTICS for Invalid from email:');
       console.error(`  - From email value: "${msg.from}"`);
       console.error(`  - Email length: ${msg.from?.length || 0}`);
       console.error(`  - Contains @: ${msg.from?.includes('@') || false}`);
@@ -129,7 +115,13 @@ export async function sendPlanEmail({ to, sessionId }) {
       console.error('    4. Email domain not authenticated in SendGrid');
     }
 
-    throw error;
+    // Return error result instead of throwing
+    return {
+      success: false,
+      error: errorMessage,
+      statusCode,
+      details: errorDetails
+    };
   }
 }
 

@@ -79,15 +79,15 @@ export async function POST(request) {
 
             // If we just moved into EMAIL_SENDING stage, send email now
             if (session.stage === "EMAIL_SENDING") {
-                try {
-                    await sendPlanEmail({
-                        to: session.data.shareEmail,
-                        sessionId: session.id
-                    });
+                const emailResult = await sendPlanEmail({
+                    to: session.data.shareEmail,
+                    sessionId: session.id
+                });
 
-                    session.stage = "DONE";
-                    saveSession(session);
+                session.stage = "DONE";
+                saveSession(session);
 
+                if (emailResult.success) {
                     return NextResponse.json({
                         sessionId: session.id,
                         stage: session.stage,
@@ -96,16 +96,19 @@ export async function POST(request) {
                             ui: null
                         }
                     });
-                } catch (e) {
-                    console.error(e);
-                    session.stage = "DONE";
-                    saveSession(session);
+                } else {
+                    // Email failed but flow continues - inform user but don't break
+                    console.warn(`[chat route] Email sending failed: ${emailResult.error}`);
                     return NextResponse.json({
                         sessionId: session.id,
                         stage: session.stage,
-                        error: "Failed to send email. Please try again.",
-                        errorLog: e.message
-                    }, { status: 500 });
+                        assistant: {
+                            text: "⚠️ Your fitness plan is ready, but we couldn't send the email. You can still access your plan using the link above.",
+                            ui: null
+                        },
+                        emailSent: false,
+                        emailError: emailResult.error
+                    });
                 }
             }
         }
