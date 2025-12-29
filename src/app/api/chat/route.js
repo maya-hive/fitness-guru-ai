@@ -98,6 +98,7 @@ export async function POST(request) {
                     });
                 } catch (e) {
                     console.error(e);
+                    session.stage = "DONE";
                     saveSession(session);
                     return NextResponse.json({
                         sessionId: session.id,

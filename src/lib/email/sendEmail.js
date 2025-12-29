@@ -1,6 +1,16 @@
 import sgMail from "@sendgrid/mail";
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+// Validate and set API key
+const apiKey = process.env.SENDGRID_API_KEY;
+if (!apiKey) {
+  throw new Error('SENDGRID_API_KEY environment variable is not set');
+}
+
+if (apiKey.trim() === '') {
+  throw new Error('SENDGRID_API_KEY environment variable is empty');
+}
+
+sgMail.setApiKey(apiKey);
 
 export async function sendPlanEmail({ to, sessionId }) {
   const planUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.FRONTEND_ORIGIN || 'http://localhost:3000'}/plan/${sessionId}`;
@@ -25,13 +35,26 @@ export async function sendPlanEmail({ to, sessionId }) {
     html: emailTemplate({ planUrl })
   };
 
+  console.log('msg', msg);
+
   try {
-    await sgMail.send(msg);
+    await sgMail.send(msg)
+      .then(() => { }, error => {
+        console.error(error);
+
+        if (error.response) {
+          console.error(error.response.body)
+        }
+      });
   } catch (error) {
     // Enhanced error logging for SendGrid errors
     const maskedFrom = msg.from
       ? (msg.from.includes('@') ? msg.from.replace(/(.{2})(.*)(@.*)/, '$1***$3') : msg.from)
       : 'NOT SET';
+
+    const statusCode = error.code || error.response?.statusCode;
+    const errorBody = error.response?.body;
+    const errorMessage = error.message || 'Unknown error';
 
     const errorDetails = {
       to,
@@ -39,21 +62,61 @@ export async function sendPlanEmail({ to, sessionId }) {
       from: maskedFrom,
       fromLength: msg.from?.length || 0,
       fromHasAt: msg.from?.includes('@') || false,
-      error: error.message,
-      statusCode: error.code || error.response?.statusCode,
-      responseBody: error.response?.body,
+      error: errorMessage,
+      statusCode,
+      responseBody: errorBody ? JSON.stringify(errorBody, null, 2) : undefined,
       responseHeaders: error.response?.headers
     };
 
     console.error('Failed to send email:', errorDetails);
 
     // Log specific SendGrid error details if available
-    if (error.response?.body) {
-      console.error('SendGrid error details:', JSON.stringify(error.response.body, null, 2));
+    if (errorBody) {
+      console.error('SendGrid error details:', JSON.stringify(errorBody, null, 2));
+    }
+
+    // Handle authorization errors specifically
+    if (statusCode === 403 ||
+      errorMessage.toLowerCase().includes('not authorized') ||
+      errorMessage.toLowerCase().includes('unauthorized') ||
+      (errorBody?.errors?.some(e =>
+        e.message?.toLowerCase().includes('not authorized') ||
+        e.message?.toLowerCase().includes('unauthorized') ||
+        e.message?.toLowerCase().includes('permission')
+      ))) {
+      console.error('========================================');
+      console.error('SENDGRID AUTHORIZATION ERROR DETECTED');
+      console.error('========================================');
+      console.error('This error typically means:');
+      console.error('  1. The API key does not have "Mail Send" permission enabled');
+      console.error('  2. The API key is invalid or expired');
+      console.error('  3. The API key belongs to a different SendGrid account');
+      console.error('');
+      console.error('How to fix:');
+      console.error('  1. Go to SendGrid Dashboard > Settings > API Keys');
+      console.error('  2. Check that your API key has "Mail Send" permission');
+      console.error('  3. If not, create a new API key with "Full Access" or "Restricted Access" with "Mail Send" enabled');
+      console.error('  4. Update your SENDGRID_API_KEY environment variable with the new key');
+      console.error('  5. Restart your application');
+      console.error('');
+      console.error('Current API key status:');
+      console.error(`  - API key is set: ${!!apiKey}`);
+      console.error(`  - API key length: ${apiKey?.length || 0} characters`);
+      console.error(`  - API key starts with: ${apiKey?.substring(0, 7) || 'N/A'}...`);
+      console.error('========================================');
+
+      // Create a more helpful error message
+      const authError = new Error(
+        'SendGrid API key is not authorized to send emails. ' +
+        'Please verify that your API key has "Mail Send" permission enabled in the SendGrid dashboard.'
+      );
+      authError.statusCode = statusCode;
+      authError.originalError = error;
+      throw authError;
     }
 
     // Additional diagnostics for "Invalid from email address" error
-    if (error.response?.body?.errors?.some(e => e.field === 'from')) {
+    if (errorBody?.errors?.some(e => e.field === 'from')) {
       console.error('DIAGNOSTICS for Invalid from email:');
       console.error(`  - From email value: "${msg.from}"`);
       console.error(`  - Email length: ${msg.from?.length || 0}`);
